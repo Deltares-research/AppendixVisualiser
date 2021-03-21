@@ -104,8 +104,13 @@ export default {
                      yaxis: {title: item.ylabel,
                              linewidth: 4,
                              range:item.ylim},
-                     legend: {bgcolor: "#e5eef2"},
-                     font : {family: 'helvetica, arial', size: 18}}
+                     legend: {bgcolor: "#e5eef2", 
+                              orientation: "h",
+                              y:-0.5,
+                              x: 0
+                            },
+                     font : {family: 'helvetica, arial', size: 18},
+                     annotations: item.annotations}
 
     },
     toggleSize(){

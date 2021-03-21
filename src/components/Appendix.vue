@@ -1,14 +1,19 @@
 <template>
   <div class="container-fluid">
       <div class="row justify-content-center">
-        <div>
           <VueShowdown
                     :markdown="paragraphText"
                     flavor="github"
                     :options="{ emoji: true }"
+                    class="textRow"
+                    :style="cssVars"
                   />
-        </div>
+
       </div>
+      <div class="row justify-content-center">
+        <button v-on:click="toggleTextExpansion()" class="expansionButton">
+          <b-icon icon="arrow-down-circle" :style="cssVars" class="expansionIcon" scale="2"/>
+        </button></div>
       <b-container fluid>
       <b-row class="d-flex justify-content-center">
         <b-col id="component-graph" 
@@ -49,6 +54,7 @@ export default {
     NoFile: true,
     contact: String,
     reference: String,
+    textExpanded: false,
     options: [{text: '0', value: 0},
               {text: '1', value: 1},
               {text: '2', value: 2},
@@ -60,7 +66,28 @@ export default {
     count: 0,
     fields: [],
   }),
-  
+  computed: {
+    cssVars() {
+      let th = "100px"
+      let expandButtonRotation = "0deg"
+      if (this.textExpanded) {
+        th="1000px"
+        expandButtonRotation = "180deg"
+      } else {
+        th="100px"
+        expandButtonRotation = "0deg"
+      }
+      return {'--textHeight': th, '--expandButtonRotation': expandButtonRotation}
+    },
+    buttonRotation(){
+      if (this.textExpanded) {
+        return 180
+      }
+      else {
+        return 0
+      }
+    }
+  },
   methods: {
     setNumberOfGraphs(type) {
       if (this.count < this.numberOfGraphs) {
@@ -89,6 +116,9 @@ export default {
     },
     paragraphServer(){
       return this.paragraphText
+    },
+    toggleTextExpansion(){
+      this.textExpanded = !this.textExpanded
     }
     },
     mounted(){
@@ -156,6 +186,37 @@ h3 {
 
 .textRow {
   max-width: 600px;
+  transition: all 0.8s ease-out;
+  max-height: var(--textHeight);
+  overflow: hidden;
+  border-bottom: 2px solid #0927a2;
+  
+}
+
+.expansionIcon{
+  transition: all 1s ease-out;
+  color: #0927a2;
+  transform: rotate(var(--expandButtonRotation));
+}
+
+.expansionButton{
+  background-color: transparent;
+  border-radius: 10px;
+  border: 0px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  outline: none;
+  transition-timing-function: ease-out;
+  transition: 0.8s;
+  border: 0px dashed #0927a2;
+}
+
+.expansionButton:focus{
+  outline: none;
+}
+
+.expansionButton:hover{
+  background-color: #e5eef2;
 }
 
 

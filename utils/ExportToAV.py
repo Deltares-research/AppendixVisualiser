@@ -88,25 +88,25 @@ sample text
                          "xlim": xlim,
                          "ylim": ax.get_ylim(),
                          "title": title,
-                         "data": []
+                         "data": [],
+                         "annotations": [],
                         }
                         )
                 for line in ax.lines:
                     color = line.get_color()
                     mode = self._get_mode(line)
                     
-                    
                     try:
-                        dash = self.linestyle_map.get(line.get_linestyle())
+                        dash = self.linestyle_map[line.get_linestyle()]
                     except KeyError:
-                        print (f"linestyle {dash} not supported")
+                        print (f"linestyle {line.get_linestyle()} not supported")
                         dash = "solid"
                     
                     try:
-                        marker_symbol = self.marker_map.get(line.get_marker())
+                        marker_symbol = self.marker_map[line.get_marker()]
                     except KeyError:
-                        print (f"marker symbol {marker_symbol} not supported")
-                        dash = "circle"
+                        print (f"marker symbol {line.get_marker()} not supported. defaulting to circle")
+                        marker_symbol = "circle"
 
                     # Get xy data
                     xdata = line.get_xdata()
@@ -133,9 +133,9 @@ sample text
                                 "dash": dash,
                                 "width": line.get_linewidth()*1},
                         "marker" :  {"symbol": marker_symbol,
-                                    "color": mplcolors.to_rgb(line.get_markerfacecolor()),
+                                    "color": f"rgb{mplcolors.to_rgb(line.get_markerfacecolor())}",
                                     "size": line.get_markersize(),
-                                    "line": {'color': mplcolors.to_rgb(line.get_markeredgecolor()),
+                                    "line": {'color': f"rgb{mplcolors.to_rgb(line.get_markeredgecolor())}",
                                              'width': line.get_markeredgewidth()}
                         }}
                     label =  line.get_label()
@@ -146,16 +146,49 @@ sample text
                         datadict["showlegend"] = False
                     appendix_dict.get('graphs')[-1].get('data').append(datadict)
                 for text in ax.texts:
+                    # Convert timeseries
+                    textx = text._x
+                    if isinstance(text._x, datetime):
+                        textx = text._x.strftime("%Y-%m-%d %H:%M:%S")
+                    if isinstance(text._x, np.datetime64):
+                        textx = pd.to_datetime(text._x).strftime("%Y-%m-%d %H:%M:%S")
 
-                    appendix_dict.get('graphs')[-1].get('data').append(
-                        {'x': [text._x],
-                         'y': [text._y],
-                         "mode": "text",
-                         "text": [text._text],
-                         "textposition": self._get_textposition(text),
-                         "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
-                        }
-                    )
+                    # If arrowprops, it is an annotation
+                    try: 
+                        
+                        textax = text.xy[0]
+                        if isinstance(textax, datetime):
+                            textax = textax.strftime("%Y-%m-%d %H:%M:%S")
+                        if isinstance(textax, np.datetime64):
+                            textax = pd.to_datetime(textax).strftime("%Y-%m-%d %H:%M:%S")
+                        arrow = text.arrowprops
+                        appendix_dict.get('graphs')[-1].get('annotations').append(
+                            {'x': textx,
+                             'y': text._y,
+                             "xref": "x",
+                             "yref": "y",
+                             "axref": "x",
+                             "ayref": "y",
+                             "ax": textax,
+                             "ay": text.xy[1],
+                             "text": text._text,
+                             "showarrow": True,
+                             "arrowhead": 4,
+                             "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
+                            }
+                        )
+                    except AttributeError:
+                        appendix_dict.get('graphs')[-1].get('data').append(
+                            {'x': [textx],
+                            'y': [text._y],
+                            "mode": "text",
+                            "showlegend": False,
+                            "text": [text._text],
+                            "textposition": self._get_textposition(text),
+                            "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
+                            })
+                    
+                    
                 
         
         self.setAppendix(appendix, appendix_dict)
@@ -272,10 +305,15 @@ if __name__ == "__main__":
 
     ax.plot(t, np.sin(x)/2, '--', color='r', label='sin2(x)', linewidth=3)
     ax.plot(t, np.cos(x), '.-', color="c", label='Cos2ine')
+
+    ax.text(t[5], np.sin(x)[5], 'Text')
+    ax.annotate("annotation", xy=(t[6], np.sin(x)[6]), xytext=(t[6], np.sin(x)[8]), textcoords='offset points',
+                                arrowprops=dict(arrowstyle="->"))
+
     ax.set_xlabel('Time')
     ax.set_ylabel('Energy')
     ax.set_title('TimeSeries')
-
+    
     figs.append(fig)
 
     # TEST CASE 5: AXHLINE
@@ -319,11 +357,24 @@ if __name__ == "__main__":
     ax.plot(x, np.sin(x)) # just someline
 
     ax.text(x[5], np.sin(x)[5], 'Half Way')
+    ax.annotate("annotation", xy=(x[6], np.sin(x)[6]), xytext=(x[6], np.sin(x)[8]), textcoords='offset points',
+                                arrowprops=dict(arrowstyle="->"))
     ax.text(8, 1, 'Out of ax')
     ax.set_title('Annotations')
 
     figs.append(fig)
 
+    # TEST CASE 7: Scatterplot
+    # ------------------------------------
+    fig, ax = plt.subplots(1)
+    start_t = datetime(year=2020, month=1, day=1)
+    x = np.linspace(0, 2*np.pi, 10)
+    
+    ax.scatter(x, np.sin(x)) # just someline
+
+    ax.set_title('Scatter')
+
+    figs.append(fig)
 
     # How to Use Export
     # ------------------------------------
@@ -332,7 +383,7 @@ if __name__ == "__main__":
 
     exporter = ExportToAV()
     exporter.addAppendix(name="Figures")
-    exporter.addFiguresToAppendix(figs, "Figures")
+    exporter.addFiguresToAppendix([figs[-1]], "Figures")
     exporter.to_json("ExportToAV.json")
 
 
