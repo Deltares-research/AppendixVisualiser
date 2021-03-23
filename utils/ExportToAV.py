@@ -40,7 +40,7 @@ class ExportToAV:
         with open(path, 'w') as f:
             json.dump(self._output_dict, f, indent=2)
 
-    def addAppendix(self, name:str="appendix", paragraph:str=None):
+    def addAppendix(self, name:str="appendix", appendixtype="graphs",paragraph:str=None):
         if paragraph is None:
             paragraph = r"""# About
 Use this section to describe the figures or tables in this appendix. 
@@ -53,7 +53,7 @@ sample text
 sample text
 """
 
-        appendix_dict = {"name": name, "paragraphs":list(), "graphs":list()}
+        appendix_dict = {"name": name, "type": appendixtype, "paragraphs":list(), "graphs":list(), "tables":list()}
         appendix_dict['paragraphs'] = paragraph
         self._output_dict.get('appendices').append(appendix_dict)
 
@@ -71,6 +71,30 @@ sample text
 
         """
         self._output_dict.get('appendices')[appendix_index]['paragraphs'] = paragraph
+
+    def addTablesToAppendix(self, tables, appendix:Union[int, str]=0):
+        if isinstance(appendix, str):
+            appendix = self._get_appendix_index_by_name(appendix)
+
+        appendix_dict = self.getAppendix(appendix)
+        for table in tables:
+            appendix_dict.get("tables").append(table)
+
+        self.setAppendix(appendix, appendix_dict)
+
+    def getTablesFromCSV(self, fnamelist, title:str="NO TITLE"):
+        tables = []
+        for fname in fnamelist:
+        
+            data = []        
+            with open(fname, 'r') as f:
+                for line in f:
+                    data.append(line.split(','))
+            table = {"title": title,
+                     "data": copy(data)
+                     }
+            tables.append(table)
+        return tables
 
     def addFiguresToAppendix(self, figs, appendix:Union[int, str]=0):
         if isinstance(appendix, str):
@@ -111,6 +135,10 @@ sample text
                     # Get xy data
                     xdata = line.get_xdata()
                     ydata = line.get_ydata()
+                    if len(xdata) == 0:
+	                    # empty line, break
+	                    continue
+	                    
                     xdata, ydata = self._transform_to_data_coordinates(line, xdata, ydata, ax)
 
                     # Convert timeseries
@@ -146,47 +174,57 @@ sample text
                         datadict["showlegend"] = False
                     appendix_dict.get('graphs')[-1].get('data').append(datadict)
                 for text in ax.texts:
-                    # Convert timeseries
-                    textx = text._x
-                    if isinstance(text._x, datetime):
-                        textx = text._x.strftime("%Y-%m-%d %H:%M:%S")
-                    if isinstance(text._x, np.datetime64):
-                        textx = pd.to_datetime(text._x).strftime("%Y-%m-%d %H:%M:%S")
+	                # Convert timeseries
+	                textx = text._x
+	                if isinstance(text._x, datetime):
+	                    textx = text._x.strftime("%Y-%m-%d %H:%M:%S")
+	                if isinstance(text._x, np.datetime64):
+	                    textx = pd.to_datetime(text._x).strftime("%Y-%m-%d %H:%M:%S")
 
-                    # If arrowprops, it is an annotation
-                    try: 
-                        
-                        textax = text.xy[0]
-                        if isinstance(textax, datetime):
-                            textax = textax.strftime("%Y-%m-%d %H:%M:%S")
-                        if isinstance(textax, np.datetime64):
-                            textax = pd.to_datetime(textax).strftime("%Y-%m-%d %H:%M:%S")
-                        arrow = text.arrowprops
-                        appendix_dict.get('graphs')[-1].get('annotations').append(
-                            {'x': textx,
-                             'y': text._y,
-                             "xref": "x",
-                             "yref": "y",
-                             "axref": "x",
-                             "ayref": "y",
-                             "ax": textax,
-                             "ay": text.xy[1],
-                             "text": text._text,
-                             "showarrow": True,
-                             "arrowhead": 4,
-                             "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
-                            }
-                        )
-                    except AttributeError:
-                        appendix_dict.get('graphs')[-1].get('data').append(
-                            {'x': [textx],
-                            'y': [text._y],
-                            "mode": "text",
-                            "showlegend": False,
-                            "text": [text._text],
-                            "textposition": self._get_textposition(text),
-                            "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
-                            })
+	                # If arrowprops, it is an annotation
+	                try: 
+	                    arrow = text.arrowprops
+	                    textax = text.xy[0]
+	                    if isinstance(textax, datetime):
+	                        textax = textax.strftime("%Y-%m-%d %H:%M:%S")
+	                    if isinstance(textax, np.datetime64):
+	                        textax = pd.to_datetime(textax).strftime("%Y-%m-%d %H:%M:%S")
+	                    
+	                    # Location of annotation
+	                    if text.anncoords == "offset points":
+	                        textx, texty = self._transform_to_data_coordinates(text, [text.xyann[0]], [text.xyann[1]], ax)
+	                        texty = float(texty[0])
+	                        textx = textx[0]
+	                    else:
+	                        textx = text.xyann[0]*9  # we assume nine pixels per point
+	                        texty = text.xyann[1]*9
+
+	                    appendix_dict.get('graphs')[-1].get('annotations').append(
+	                        {'x': textx,  # geen textx, werkt niet met offset coordinates
+	                            'y': texty,
+	                            "xref": "x",
+	                            "yref": "y",
+	                            "axref": "x",
+	                            "ayref": "y",
+	                            "xanchor": "left",
+	                            "ax": textax,
+	                            "ay": text.xy[1],
+	                            "text": text._text,
+	                            "showarrow": False,   # does not work with  pixel coordinates yet
+	                            "arrowhead": 4,
+	                            "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
+	                        }
+	                    )
+	                except AttributeError:
+	                    appendix_dict.get('graphs')[-1].get('data').append(
+	                        {'x': [textx],
+	                        'y': [text._y],
+	                        "mode": "text",
+	                        "showlegend": False,
+	                        "text": [text._text],
+	                        "textposition": self._get_textposition(text),
+	                        "textfont": {"color": f"rgb{mplcolors.to_rgb(text._color)}"}
+	                        })
                     
                     
                 
@@ -207,16 +245,21 @@ sample text
         return f"{alignment_map[th]} {alignment_map[tv]}"
 
     def _get_mode(self, line):
-        if line.get_marker() is 'None':
+        if line.get_marker() == 'None':
             return "lines"
-        elif (line.get_marker() is not 'None') and (line.get_linestyle() is not 'None'):
+        elif (line.get_marker() != 'None') and (line.get_linestyle() != 'None'):
             return "lines+markers"
         else:
             return "markers"
 
     def _ax_is_datetime(self, ax):
         for line in ax.lines:
-            if isinstance(line.get_xdata()[0], (datetime, np.datetime64)):
+            try:
+                x = line.get_xdata()[0]
+            except IndexError:
+                x = None
+                
+            if isinstance(x, (datetime, np.datetime64)):
                 return True
         return False
 
@@ -380,10 +423,21 @@ if __name__ == "__main__":
     # ------------------------------------
 
     # ExportToAV(figs).to_json("ExportToAV.json")
+    table = [
+          ['Index', 'Data1', 'Data2', 'Data3'],
+          [1, 'b3ba90', '7c95f7', '9a3853'],
+          [2, 'ec0b78', 'ba045d', 'ecf03c'],
+          [3, '63788d', 'a8c325', 'aab418'],
+          [4, 'hf7y8c', '4rghjk', 'cgnhik']
+        ],
 
     exporter = ExportToAV()
     exporter.addAppendix(name="Figures")
     exporter.addFiguresToAppendix([figs[-1]], "Figures")
+    exporter.addAppendix(name="Tables",  paragraph="# Tables", appendixtype="tables")
+    tables = exporter.getTablesFromCSV(["tables.csv"], title="test_table")
+    exporter.addTablesToAppendix(tables, "Tables")
+    
     exporter.to_json("ExportToAV.json")
 
 

@@ -8,10 +8,6 @@
         <b-navbar-nav>
           <!--<b-nav-item to="/" :active="path == '/'">Home</b-nav-item>
           <b-nav-item to="/search" :active="path == '/search'">Search</b-nav-item>
-      
-
-        <b-nav-item disabled>Appendix 1</b-nav-item>
-        <b-nav-item disabled>Appendix 2</b-nav-item>
         -->
         <b-nav-item v-for="appendix in Appendices" :key="appendix.name" v-on:click="SetAppendix(appendix.index)"> {{ appendix.name }}</b-nav-item>
         <b-nav-item href="#" v-b-modal.modal-1>About</b-nav-item>
@@ -37,6 +33,9 @@
      <Appendix
         v-bind:paragraphText="currentAppendix.paragraphText"
         v-bind:reportData="currentAppendix.reportData"
+        v-bind:appendixType="currentAppendix.appendixType"
+        v-bind:deleteAll="triggerToDeleteAll"
+
      ></Appendix>
     </div>
     
@@ -61,6 +60,7 @@ export default {
     data: () => ({
       NoFile: true,
       Appendices: [],
+      triggerToDeleteAll: 0,
       currentAppendix: {"name": "koen", "paragraphText": "*be* **bold**"}
     }),
     mounted(){
@@ -69,15 +69,28 @@ export default {
     methods: {
     SetAppendix (index) {
       this.currentAppendix = this.Appendices[index]
+      this.triggerToDeleteAll ++
+
     },
     onFileDrop (data) {
         this.NoFile = false
         for (let i=0; i< data.appendices.length ; i++){
+          let reportData = null
+          if (data.appendices[i].type == "graphs") {
+            reportData =  data.appendices[i].graphs
+          } else if (data.appendices[i].type == "tables"){
+            reportData =  data.appendices[i].tables
+          } else {
+            reportData = data.appendices[i].graphs
+          }
+          console.log(data.appendices[i].type)
+
           this.Appendices.push({
             "name": data.appendices[i].name,
             "index": i,
             "paragraphText": data.appendices[i].paragraphs,
-            "reportData": data.appendices[i].graphs
+            "appendixType": data.appendices[i].type,
+            "reportData": reportData
           })
         }
         this.reference = data.reference

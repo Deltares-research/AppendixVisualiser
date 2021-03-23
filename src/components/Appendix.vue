@@ -40,6 +40,7 @@
 <script>
 //import Vue from 'vue'
 import Graph from '../components/Graph';
+import Table from '../components/Table';
 import Multiselect from 'vue-multiselect'
 import { VueShowdown } from 'vue-showdown';
 //import $ from 'jquery'
@@ -47,9 +48,9 @@ import { VueShowdown } from 'vue-showdown';
 export default {
   name: 'Appendix',
   components: {
-    Graph, Multiselect, VueShowdown
+    Graph, Table, Multiselect, VueShowdown
   },
-  props: ["paragraphText", "reportData"],
+  props: ["paragraphText", "reportData", "deleteAll", "appendixType"],
   data: () => ({
     NoFile: true,
     contact: String,
@@ -70,14 +71,19 @@ export default {
     cssVars() {
       let th = "100px"
       let expandButtonRotation = "0deg"
+      let mask = 0;
       if (this.textExpanded) {
         th="1000px"
+        mask = 1;
         expandButtonRotation = "180deg"
       } else {
         th="100px"
+        mask=0;
         expandButtonRotation = "0deg"
       }
-      return {'--textHeight': th, '--expandButtonRotation': expandButtonRotation}
+      return {'--textHeight': th, 
+              '--expandButtonRotation': expandButtonRotation,
+              '--textMask': "linear-gradient(to top,rgba(255, 255, 255,"+mask+"), rgba(255, 255, 255, 1))"}
     },
     buttonRotation(){
       if (this.textExpanded) {
@@ -86,6 +92,11 @@ export default {
       else {
         return 0
       }
+    }
+  },
+  watch : {
+    deleteAll: function(){
+      this.deleteAllGraphs()
     }
   },
   methods: {
@@ -103,16 +114,22 @@ export default {
         this.count--
         this.count--} 
       },
-      onGraphDelete (data) {
+    onGraphDelete (data) {
         for (var i=0 ; i < this.fields.length; i++){
           console.log("popping graph "+data)
           if (this.fields[i].id==data){this.fields.splice(i, 1)}
         }
       },
-      addGraph(){
+    addGraph(){
+      let component = "Graph"
+      console.log(this.appendixType)
+      if (this.appendixType == 'tables'){component="Table"}
         this.fields.push({
-        'type': "Graph",
+        'type': component,
         id: this.count++})
+    },
+    deleteAllGraphs(){
+      this.fields = []
     },
     paragraphServer(){
       return this.paragraphText
@@ -190,7 +207,7 @@ h3 {
   max-height: var(--textHeight);
   overflow: hidden;
   border-bottom: 2px solid #0927a2;
-  
+  mask-image: var(--textMask);
 }
 
 .expansionIcon{
