@@ -77,7 +77,7 @@ export default {
         mask = 1;
         expandButtonRotation = "180deg"
       } else {
-        th="100px"
+        th="200px"
         mask=0;
         expandButtonRotation = "0deg"
       }

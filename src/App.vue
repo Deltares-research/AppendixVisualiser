@@ -15,8 +15,8 @@
         </b-navbar-nav>
         <b-modal id="modal-1" 
                  title="About this app">
-        <p class="my-4">Hi! Great you are here :) </p><p> This is an experimental visualisation experience. We hope you enjoy using this as much as we had building it.  </p>
-        <p>Get in touch at <a href="mailto:koen.berends@deltares.nl">koen.berends@deltares.nl</a></p>
+        <p class="my-4">Hi! Great you are here :) </p><p>Please be advised that this web-app is currently in an experimental state. Functionality may change, and input files may not longer be accepted after an update. </p><p>We hope you enjoy your visit and tell us your experiences!</p>
+        <p>To get in touch, reach us at <a href="mailto:koen.berends@deltares.nl">koen.berends@deltares.nl</a></p>
 
       </b-modal>
       </b-collapse>

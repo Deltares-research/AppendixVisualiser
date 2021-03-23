@@ -6,7 +6,7 @@ import matplotlib.dates as mdates
 from matplotlib import colors as mplcolors
 import json
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Union, List
 from pathlib import Path 
 from copy  import copy
 
@@ -82,15 +82,15 @@ sample text
 
         self.setAppendix(appendix, appendix_dict)
 
-    def getTablesFromCSV(self, fnamelist, title:str="NO TITLE"):
+    def getTablesFromCSV(self, fnamelist, titlelist:List[str]=["NO TITLE"]):
         tables = []
-        for fname in fnamelist:
+        for i, fname in enumerate(fnamelist):
         
             data = []        
             with open(fname, 'r') as f:
                 for line in f:
                     data.append(line.split(','))
-            table = {"title": title,
+            table = {"title": titlelist[i],
                      "data": copy(data)
                      }
             tables.append(table)
