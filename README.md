@@ -1,6 +1,8 @@
 # AppendixVisualiser
 ![status workflow](https://github.com/Deltares/AppendixVisualiser/actions/workflows/gh-pages-deploy.yml/badge.svg)
 
+
+
 ## Project setup
 ```
 npm install

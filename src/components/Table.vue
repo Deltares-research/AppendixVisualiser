@@ -8,6 +8,7 @@
         <button class="btn deletegraphbtn" v-on:click="deleteMe"> <b-icon icon="x" scale="2" variant="danger"></b-icon></button>
       </span>
       </b-row>
+      <b-row class="justify-content-center"><h2>{{tabledata.title}}</h2></b-row>
       <vue-table-dynamic :params="tabledata" ref="table"></vue-table-dynamic>
         <!--Plotly :data="data" :layout="layout"></Plotly>-->
 
@@ -116,7 +117,8 @@ export default {
       
       }
       
-      this.tabledata = {"data": item.data, 
+      this.tabledata = {"title": item.title,
+                        "data": item.data, 
                         "header": 'row',
                         "stripe": true,
                         "highlight": { "row": [0] },
